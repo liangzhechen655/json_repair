@@ -429,6 +429,7 @@ This module will parse the JSON file following the BNF definition:
 
 If something is wrong (a missing parentheses or quotes for example) it will use a few simple heuristics to fix the JSON string:
 - Add the missing parentheses if the parser believes that the array or object should be closed
+- Recover a missing opening `{` when a top-level value begins with a double-quoted key followed by `:`. This repair is logged and rejected in strict mode.
 - Quote strings or add missing single quotes
 - Adjust whitespaces and remove line breaks
 

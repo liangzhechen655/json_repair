@@ -255,6 +255,14 @@ class JSONParser:
 
         repairer, schema = self._resolve_schema_for_parse(schema)
 
+        if self.context.empty and self._starts_object_without_opening_brace():
+            if self.strict:
+                raise ValueError("Missing opening '{' for object.")
+            self.skip_whitespaces()
+            self.log("Found an object with a missing opening '{'")
+            value = self.parse_object(schema, path) if repairer else self.parse_object()
+            return self._finalize_parsed_value(value, repairer, schema, path, finalize_schema, record_top_level_value)
+
         while True:
             char = self.get_char_at()
             # None means that we are at the end of the string provided
@@ -312,6 +320,23 @@ class JSONParser:
                 return self._finalize_parsed_value(value, repairer, schema, path, finalize_schema)
             # If everything else fails, we just ignore and move on
             self.index += 1
+
+    def _starts_object_without_opening_brace(self) -> bool:
+        offset = self.scroll_whitespaces()
+        if self.get_char_at(offset) != '"':
+            return False
+        offset += 1
+        while (char := self.get_char_at(offset)) is not None:
+            if char == "\\":
+                offset += 2
+                continue
+            if char == '"':
+                offset += 1
+                while (char := self.get_char_at(offset)) is not None and char.isspace():
+                    offset += 1
+                return char == ":"
+            offset += 1
+        return False
 
     def _resolve_schema_for_parse(
         self,
